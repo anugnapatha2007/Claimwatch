@@ -186,6 +186,138 @@ st.markdown("""
         content: none !important;
     }
 
+    /* ===== CHAT UI OVERRIDE ===== */
+    .chat-bubble-container {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 10px;
+    }
+    
+    .bubble {
+        padding: 12px 16px;
+        border-radius: 18px;
+        font-size: 0.95rem;
+        line-height: 1.4;
+        position: relative;
+        max-width: 90%;
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .bubble-user {
+        align-self: flex-end;
+        background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+        color: white;
+        border-bottom-right-radius: 4px;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+
+    .bubble-assistant {
+        align-self: flex-start;
+        background: rgba(30, 41, 59, 0.9) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #f1f5f9;
+        border-bottom-left-radius: 4px;
+    }
+
+    .bubble-name {
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 3px;
+        color: #94a3b8;
+    }
+
+    /* PERFECT CIRCLE Popover Button (Extreme Bottom Right) */
+    div[data-testid="stPopover"] {
+        position: fixed !important;
+        bottom: 20px !important;
+        right: 20px !important;
+        z-index: 9999999 !important;
+        width: 65px !important;
+        height: 65px !important;
+    }
+
+    div[data-testid="stPopover"] > button {
+        background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%) !important;
+        border: none !important;
+        border-radius: 50% !important;
+        width: 65px !important;
+        height: 65px !important;
+        min-width: 65px !important;
+        min-height: 65px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 10px 30px rgba(6, 182, 212, 0.5) !important;
+        transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        overflow: hidden !important;
+    }
+    
+    div[data-testid="stPopover"] > button:hover {
+        transform: scale(1.1) rotate(10deg) !important;
+        box-shadow: 0 15px 40px rgba(6, 182, 212, 0.6) !important;
+    }
+
+    /* Center the emoji and hide EVERYTHING else (labels, arrows, etc.) */
+    div[data-testid="stPopover"] button span > div:nth-child(n+2) {
+        display: none !important;
+    }
+    
+    div[data-testid="stPopover"] button span div p {
+        font-size: 32px !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+        display: block !important;
+    }
+    
+    div[data-testid="stPopover"] button span svg {
+        display: none !important;
+    }
+    
+    /* Strong override for any potential text overflow/labels */
+    div[data-testid="stPopover"] button * {
+        font-family: 'Segoe UI Emoji', sans-serif !important;
+    }
+
+    /* Popover Content (FORCE DARK MODE) */
+    div[data-testid="stPopoverContent"] {
+        background: #0f172a !important; /* Slate 900 */
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8) !important;
+        border-radius: 20px !important;
+        min-width: 350px !important;
+        z-index: 10000000 !important;
+    }
+    
+    div[data-testid="stPopoverContent"] h3, 
+    div[data-testid="stPopoverContent"] p, 
+    div[data-testid="stPopoverContent"] span,
+    div[data-testid="stPopoverContent"] label {
+        color: #f1f5f9 !important;
+    }
+
+    /* Input styling for dark mode */
+    div[data-testid="stPopoverContent"] input {
+        background: rgba(15, 23, 42, 0.8) !important;
+        color: white !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    }
+
+    /* Scrollbar for dark mode chat */
+    div[data-testid="stPopoverContent"] ::-webkit-scrollbar {
+        width: 5px;
+    }
+    div[data-testid="stPopoverContent"] ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
     
 </style>
 """, unsafe_allow_html=True)
@@ -202,9 +334,9 @@ DOMAINS = {
 }
 
 TOOLS = {
-    "analytics": {"name": "Analytics", "icon": "", "desc": "Market intelligence"},
-    "assessment": {"name": "Assessment", "icon": "", "desc": "System health"},
-    "batch_scan": {"name": "Batch Scan", "icon": "", "desc": "Bulk processing"},
+    "analytics": {"name": "Analytics", "icon": "📊", "desc": "Market intelligence"},
+    "assessment": {"name": "Assessment", "icon": "🛡️", "desc": "System health"},
+    "batch_scan": {"name": "Batch Scan", "icon": "📦", "desc": "Bulk processing"},
 }
 
 if 'current_domain' not in st.session_state:
@@ -420,11 +552,53 @@ def domain_page(domain_id):
     
     # tabss
     tab1, tab2, tab3 = st.tabs(["Investigation", "Metrics", "Explainer"])
+    
+    # --- TAB 1: INVESTIGATION ---
     with tab1:
-        example_id = st.selectbox("Load Industry Case Signature", ["Manual Entry"] + raw_data['claim_id'].tolist()[:30])
-        default_vals = raw_data[raw_data['claim_id'] == example_id].iloc[0].to_dict() if example_id != "Manual Entry" else {}
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown('<p style="color: #60a5fa; font-family: Rajdhani; font-weight: 700; text-transform: uppercase;">💼 Case Intelligence Signature</p>', unsafe_allow_html=True)
+        
+        # Manual Case Identifier
+        case_id = st.text_input("CASE IDENTIFIER", value="CASE-MNL-001", help="Enter a unique case ID for this investigation.")
+        
+        # Dynamic Forensic Parameters
+        st.markdown('<p style="color: #94a3b8; font-size: 0.85rem; margin-top: 15px;">ADDITIONAL FORENSIC PARAMETERS</p>', unsafe_allow_html=True)
+        
+        # Initialize dynamic rows in session state
+        if f'manual_rows_{domain_id}' not in st.session_state:
+            st.session_state[f'manual_rows_{domain_id}'] = [{"key": "", "value": ""}]
+            
+        # Render dynamic rows
+        rows_to_delete = []
+        for i, row in enumerate(st.session_state[f'manual_rows_{domain_id}']):
+            r1, r2, r3 = st.columns([2, 2, 0.5])
+            with r1:
+                st.session_state[f'manual_rows_{domain_id}'][i]["key"] = st.text_input(f"Parameter Name", value=row["key"], key=f"key_{domain_id}_{i}", placeholder="e.g. Impact Force", label_visibility="collapsed")
+            with r2:
+                st.session_state[f'manual_rows_{domain_id}'][i]["value"] = st.text_input(f"Parameter Value", value=row["value"], key=f"val_{domain_id}_{i}", placeholder="e.g. 45G", label_visibility="collapsed")
+            with r3:
+                if st.button("✕", key=f"del_{domain_id}_{i}"):
+                    rows_to_delete.append(i)
+        
+        # Handle deletion
+        if rows_to_delete:
+            for index in reversed(rows_to_delete):
+                st.session_state[f'manual_rows_{domain_id}'].pop(index)
+            st.rerun()
+
+        # Add row button
+        if st.button("➕ ADD PARAMETER", key=f"add_{domain_id}", use_container_width=True):
+            st.session_state[f'manual_rows_{domain_id}'].append({"key": "", "value": ""})
+            st.rerun()
+            
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Default vals for the rest of the form (mostly from empty for manual)
+        default_vals = {}
         
         input_data = get_full_input_form(domain_id, default_vals)
+        # Inject the manual case ID into input data
+        input_data['claim_id'] = case_id
         
         st.markdown('<div class="compact-scan-container">', unsafe_allow_html=True)
         if st.button("RUN", type="primary"):
@@ -644,9 +818,223 @@ def batch_scan_page():
             )
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Removed batch_report_page function
+def get_ai_response(prompt):
+    """Senior Forensic Intelligence Engine (Local Platinum V4.0)"""
+    low_prompt = prompt.lower().strip()
+    
+    # Advanced Intelligence Dossiers
+    forensic_docs = [
+        {
+            "id": "umbrella",
+            "keywords": ["umbrella", "excess", "liability limit"],
+            "title": "● Umbrella & Excess Liability Dossier",
+            "content": """● Umbrella Liability & Excess Coverage
+● Umbrella claims provide an extra layer of protection above standard policy limits.
+\n• Strategic Exposure: Fraudsters often target umbrella policies via 'strategic inflation' of injury claims to exceed base limits.
+\n• The Drop-Down: Detection of 'Drop-down' triggers where primary coverage is deliberately exhausted via fabricated casualty events.
+\n• Signature: Discrepancy between reported catastrophic injury and telematic impact velocity."""
+        },
+        {
+            "id": "liability",
+            "keywords": ["liability", "responsible", "fault", "bodily injury"],
+            "title": "● Liability & Casualty Intelligence",
+            "content": """● Liability Forensic Analysis
+● Determining legal responsibility for losses is a critical fraud friction point.
+\n• Comparative Negligence Fraud: Deliberate misrepresentation of accident circumstances to shift fault percentage (Wave-In scams).
+\n• Bodily Injury (BI) Inflation: Soft tissue injury claims without objective radiological confirmation.
+\n• Third-Party Collusion: Coordinated statements between multiple parties to fabricate a liability narrative."""
+        },
+        {
+            "id": "premium",
+            "keywords": ["premium", "cost", "payment", "bill", "price"],
+            "title": "● Premium & Underwriting Integrity",
+            "content": """● Premium & Rate Forensic Analysis
+● Fraud often starts at the point of application to reduce premium costs.
+\n• Fronting: Listing a low-risk driver as the primary operator for a high-risk vehicle/driver.
+\n• Rate Evasion: Falsifying garaging addresses to a lower-cost zip code.
+\n• Ghost Broking: Selling fake policies to unsuspecting victims, resulting in 'Premium Leakage' for the carrier."""
+        },
+        {
+            "id": "deductible",
+            "keywords": ["deductible", "excess amount", "out of pocket"],
+            "title": "● Deductible & Participation Fraud",
+            "content": """● Deductible Integrity Scan
+● Manipulation of the policyholder's self-insured portion.
+\n• Deductible Padding: Inflating repair estimates so the insurance payout covers the customer's deductible.
+\n• Backdating: Purchasing lower deductibles *after* an incident occurs and falsifying the time of loss."""
+        },
+        {
+            "id": "project_run",
+            "keywords": ["how to use", "run scan", "start", "how it works", "guide", "project"],
+            "title": "● ClaimWatch Strategic Guide",
+            "content": """● ClaimWatch Operational Manual
+● How to maximize the forensic suite:
+\n• 🛰️ Start a Scan: Navigate to any domain (Automobile, Health, etc.) and click the specialized 'RUN' button.
+\n• 🧠 Interpret Results: Red zones indicate high 'Heuristic Anomaly' scores (80%+). Green indicates 'Clean Forensic Signature'.
+\n• 📊 Analytics Tool: Use the dedicated 'Analytics' tab for global portfolio heatmaps and loss prevention metrics.
+\n• 📥 Export: Use 'Batch Scan' for bulk ingestion and multi-claim reporting."""
+        },
+        {
+            "id": "analytics_deep",
+            "keywords": ["analytics", "metrics", "charts", "graphs", "fraud index"],
+            "title": "● Analytics & Forensic Metrics",
+            "content": """● Market Intelligence & Analytics
+● Advanced visualization of global fraud trends.
+\n• Fraud Index: Our proprietary probability score of systemic exposure.
+\n• Prevented Loss: Live tracking of financial recovery via early-intervention detection.
+\n• Neural Hub: Visualizing cross-domain correlation between life, health, and casualty claims."""
+        },
+        {
+            "id": "cyber",
+            "keywords": ["cyber", "deepfake", "ai fraud", "generative ai", "gan"],
+            "title": "● Cyber & AI Deepfake Fraud (2025 Vector)",
+            "content": """● Cyber & AI Deepfake Fraud
+● The most critical emerging threat involving synthetic media manipulation.
+\n• AI-Generated Damage: Using GANs to superimpose accident damage on healthy vehicles.
+\n• Metadata Trace: Detection of stripped EXIF data or inconsistent lighting vectors in claim photos.
+\n• Behavioral Biometrics: Detecting bots via typing rhythm and mouse jitter during policy entry."""
+        },
+        {
+            "id": "staged",
+            "keywords": ["staged", "crash for crash", "accident pattern", "collision"],
+            "title": "● Staged Accident Patterns (V2.5)",
+            "content": """● Staged Accident Patterns
+● 'Cash for Crash' schemes remaining a primary loss vector.
+\n• Swoop and Squat: Emergency braking triggered by lead 'swoop' vehicle.
+\n• Wave-In: Junction beckoning followed by deliberate impact and perjury.
+\n• SMOTE Discovery: Identifying accident 'bursts' in specific geographic micro-zones."""
+        },
+        {
+            "id": "workers",
+            "keywords": ["workers", "injury", "payroll", "medical", "phantom"],
+            "title": "● Workers' Comp & Medical Dossier",
+            "content": """● Workers' Compensation Dossier
+● Occupational injury fraud and clinical collusion.
+\n• Monday Morning Syndrome: Weekend injuries reported as workplace incidents.
+\n• Clinic Hawking: Unbundled billing and upcoding in collusion with Tier C providers.
+\n• Recovery Lag: Statistical deviation from standard injury recovery curves."""
+        }
+    ]
 
+    # Smart Match Engine
+    for doc in forensic_docs:
+        if any(keyword in low_prompt for keyword in doc["keywords"]):
+            return f"{doc['title']}\n{doc['content']}"
 
+    # Generic Greetings & Self-Identification fallback
+    greetings = {
+        "hi": "Hello Investigator! I am the ClaimWatch Neural Hub. Specify a domain (Umbrella, Cyber, Automobile) for a forensic report.",
+        "hello": "Hello! ClaimWatch Intelligence at your service. How can I protect the ecosystem today?",
+        "who are you": "I am the ClaimWatch AI Neural Assistant, an advanced forensic node designed to detect complex fraud patterns.",
+        "help": "I can provide detailed dossiers on: \n● Umbrella & Liability \n● Staged Accidents \n● Cyber & Deepfake Fraud \n● Workers' Comp \n● Project Navigation Guide",
+        "thanks": "You're welcome, Investigator. Stay vigilant.",
+        "thank you": "Happy to assist. Integrity is our priority."
+    }
+
+    for key, val in greetings.items():
+        if key == low_prompt or (key in low_prompt and len(low_prompt) < 15):
+            return val
+            
+    # Professional Help Directory (The ultimate fallback)
+    return """● ClaimWatch Intelligence Directory
+● I am currently monitoring the following domains:
+\n• 🗂️ Insurance: Umbrella, Liability, Workers' Comp, Property, Staged Accidents.
+\n• 🔐 Security: Cyber Fraud, Deepfakes, Synthetic Identity.
+\n• ⚡ System: Run Scan, Analytics Tool, Batch Processing, UI Guide.
+\n● Please specify a topic for a high-fidelity intelligence report."""
+
+def chatbot_page():
+    # Sidebar Chat control
+    with st.sidebar:
+        st.markdown("---")
+        st.markdown("### 🧬 Hub Control")
+        if st.button("Clear Chat History", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+
+    st.markdown('<div class="hero-container" style="padding: 30px; border-radius: 20px; margin-bottom: 20px;">', unsafe_allow_html=True)
+    st.markdown('<h2 style="margin: 0;">🤖 NEURAL ASSISTANT</h2>', unsafe_allow_html=True)
+    st.markdown('<p style="color: #94a3b8; font-size: 0.9rem;">High-fidelity fraud intelligence interface.</p>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    if "messages" not in st.session_state or len(st.session_state.messages) == 0:
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Welcome to the Intelligence Command Center. How can I assist your fraud investigation today?"}
+        ]
+
+    # Render messages one by one to avoid large HTML block issues
+    for msg in st.session_state.messages:
+        role_class = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
+        role_name = "Investigator" if msg["role"] == "user" else "Neural Hub"
+        
+        # Format content for HTML
+        content = msg["content"].replace('\n', '<br>')
+        
+        # Inject individual bubbles
+        st.markdown(f"""
+        <div class="chat-bubble-container" style="padding: 5px 0;">
+            <div class="bubble {role_class}">
+                <div class="bubble-name">{role_name}</div>
+                <div>{content}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # React to user input
+    if prompt := st.chat_input("Query the intelligence hub..."):
+        # Add investigator message to history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        
+        # Get AI response
+        with st.spinner("Accessing Neural Hub..."):
+            response = get_ai_response(prompt)
+        
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.rerun()
+
+def floating_chatbot():
+    # Extreme corner circle bot
+    with st.popover("🤖"):
+        st.markdown("### 🤖 Neural Assistant")
+        st.markdown("---")
+        
+        if st.button("Clear Chat", key="clear_chat_floating", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+            
+        st.markdown("---")
+        
+        if "messages" not in st.session_state or len(st.session_state.messages) == 0:
+            st.session_state.messages = [
+                {"role": "assistant", "content": "Welcome Investigator. I am the ClaimWatch Neural Link. How can I assist today?"}
+            ]
+
+        # Chat container
+        for msg in st.session_state.messages:
+            role_class = "bubble-user" if msg["role"] == "user" else "bubble-assistant"
+            role_name = "Investigator" if msg["role"] == "user" else "Neural Hub"
+            
+            # Format content for HTML
+            content = msg["content"].replace('\n', '<br>')
+            
+            st.markdown(f"""
+            <div class="chat-bubble-container" style="padding: 2px 0;">
+                <div class="bubble {role_class}">
+                    <div class="bubble-name">{role_name}</div>
+                    <div style="font-size: 0.9rem;">{content}</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Input
+        if prompt := st.chat_input("Ask about fraud signatures...", key="chat_input_floating"):
+            st.session_state.messages.append({"role": "user", "content": prompt})
+            with st.spinner("Processing..."):
+                response = get_ai_response(prompt)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+            st.rerun()
+
+# Main Application Entry Point
 if __name__ == "__main__":
     current = st.session_state.current_domain
     if current == 'dashboard':
@@ -695,3 +1083,6 @@ if __name__ == "__main__":
             st.markdown('</div>', unsafe_allow_html=True)
     else:
         domain_page(current)
+        
+    # Inject Floating Chatbot globally
+    floating_chatbot()
